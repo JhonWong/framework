@@ -64,18 +64,33 @@ func (c *Core) FindRouteByRequest(request *http.Request) []ControllerHandler {
 	return nil
 }
 
+func (c *Core) FindRouteNodeByRequest(request *http.Request) *node {
+	uri := request.URL.Path
+	method := request.Method
+	upperMethod := strings.ToUpper(method)
+
+	if tree, ok := c.router[upperMethod]; ok {
+		return tree.root.matchNode(uri)
+	}
+	return nil
+}
+
 // 框架核心结构实现handle接口
 func (c *Core) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	//创建context
 	ctx := NewContext(request, response)
 
-	handlers := c.FindRouteByRequest(request)
-	if handlers == nil {
+	node := c.FindRouteNodeByRequest(request)
+	if node == nil {
 		ctx.Json(404, "not found")
 		return
 	}
 
-	ctx.SetHandlers(handlers)
+	//set route param
+	params := node.parseParamsFromEndNode(request.URL.Path)
+	ctx.setParams(params)
+
+	ctx.SetHandlers(node.handlers)
 
 	if err := ctx.Next(); err != nil {
 		ctx.Json(500, "inner error")

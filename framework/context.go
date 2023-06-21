@@ -1,13 +1,9 @@
 package framework
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
-	"io/ioutil"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -32,6 +28,8 @@ type Context struct {
 
 	writerMux  *sync.Mutex
 	hasTimeout bool
+
+	params map[string]string
 }
 
 func (c *Context) Next() error {
@@ -70,6 +68,10 @@ func (ctx *Context) SetHandlers(handlers []ControllerHandler) {
 	ctx.handlers = handlers
 }
 
+func (ctx *Context) setParams(params map[string]string) {
+	ctx.params = params
+}
+
 //  #endregion
 
 func (ctx *Context) BaseContext() context.Context {
@@ -95,51 +97,9 @@ func (ctx *Context) Value(key interface{}) interface{} {
 
 // #endregion
 
-// #region query url
-func (ctx *Context) QueryAll() map[string][]string {
-	if ctx.request != nil {
-		return map[string][]string(ctx.request.URL.Query())
-	}
-	return map[string][]string{}
-}
-func (ctx *Context) QueryInt(key string, def int) int {
-	params := ctx.QueryAll()
-	if vals, ok := params[key]; ok {
-		len := len(vals)
-		if len > 0 {
-			intval, err := strconv.Atoi(vals[len-1])
-			if err != nil {
-				return def
-			}
-			return intval
-		}
-	}
-	return def
-}
-
-func (ctx *Context) QueryString(key string, def string) string {
-	params := ctx.QueryAll()
-	if vals, ok := params[key]; ok {
-		len := len(vals)
-		if len > 0 {
-			return vals[len-1]
-		}
-	}
-	return def
-}
-
-func (ctx *Context) QueryArray(key string, def []string) []string {
-	params := ctx.QueryAll()
-	if vals, ok := params[key]; ok {
-		return vals
-	}
-	return def
-}
-
-// #endregion
-
 // #region form post
 func (ctx *Context) FormAll() map[string][]string {
+
 	if ctx.request != nil {
 		return map[string][]string(ctx.request.PostForm)
 	}
@@ -152,54 +112,6 @@ func (ctx *Context) FormArray(key string, def []string) []string {
 		return vals
 	}
 	return def
-}
-
-func (ctx *Context) FormString(key string, def string) string {
-	params := ctx.FormAll()
-	if vals, ok := params[key]; ok {
-		len := len(vals)
-		if len > 0 {
-			return vals[len-1]
-		}
-	}
-	return def
-}
-
-func (ctx *Context) FormInt(key string, def int) int {
-	params := ctx.FormAll()
-	if vals, ok := params[key]; ok {
-		len := len(vals)
-		if len > 0 {
-			intval, err := strconv.Atoi(vals[len-1])
-			if err != nil {
-				return def
-			}
-			return intval
-		}
-	}
-	return def
-}
-
-// #endregion
-
-// #region application/json post
-
-func (ctx *Context) BindJson(obj interface{}) error {
-	if ctx.request != nil {
-		body, err := ioutil.ReadAll(ctx.request.Body)
-		if err != nil {
-			return err
-		}
-		ctx.request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
-		err = json.Unmarshal(body, obj)
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New("ctx.request empty")
-	}
-	return nil
 }
 
 // #endregion

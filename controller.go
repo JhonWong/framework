@@ -8,6 +8,7 @@ import (
 )
 
 func UserLoginControllerHandler(c *framework.Context) error {
+	time.Sleep(10 * time.Second)
 	c.Json(200, "ok, UserLoginControllerHandler")
 	return nil
 }

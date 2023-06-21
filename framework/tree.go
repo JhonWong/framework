@@ -19,6 +19,7 @@ type node struct {
 	segment  string
 	handlers []ControllerHandler
 	childs   []*node
+	parent   *node
 }
 
 func newNode() *node {
@@ -85,6 +86,24 @@ func (n *node) matchNode(uri string) *node {
 	return nil
 }
 
+func (n *node) parseParamsFromEndNode(uri string) map[string]string {
+	ret := map[string]string{}
+	segments := strings.Split(uri, "/")
+	cnt := len(segments)
+	cur := n
+	for i := cnt - 1; i >= 0; i-- {
+		if cur.segment == "" {
+			break
+		}
+
+		if isWildSegment(cur.segment) {
+			ret[cur.segment[1:]] = segments[i]
+		}
+		cur = cur.parent
+	}
+	return ret
+}
+
 func (tree *Tree) AddRouter(uri string, handler ...ControllerHandler) error {
 	n := tree.root
 	if n.matchNode(uri) != nil {
@@ -117,6 +136,7 @@ func (tree *Tree) AddRouter(uri string, handler ...ControllerHandler) error {
 				cnode.isLast = true
 				cnode.handlers = handler
 			}
+			cnode.parent = n
 			n.childs = append(n.childs, cnode)
 			objNode = cnode
 		}
