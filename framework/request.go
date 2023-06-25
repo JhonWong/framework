@@ -3,6 +3,7 @@ package framework
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"io/ioutil"
 	"mime/multipart"
@@ -259,7 +260,6 @@ func (ctx *Context) FormStringSlice(key string, def []string) ([]string, bool) {
 	return def, false
 }
 
-// not_under
 func (ctx *Context) FormFile(key string) (*multipart.FileHeader, error) {
 	if ctx.request.MultipartForm == nil {
 		if err := ctx.request.ParseMultipartForm(defaultMultipartMemory); err != nil {
@@ -299,4 +299,87 @@ func (ctx *Context) BindJson(obj interface{}) error {
 		return errors.New("ctx.request empty")
 	}
 	return nil
+}
+
+func (ctx *Context) BindXml(obj interface{}) error {
+	if ctx.request != nil {
+		body, err := ioutil.ReadAll(ctx.request.Body)
+		if err != nil {
+			return err
+		}
+		ctx.request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		err = xml.Unmarshal(body, obj)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		return errors.New("ctx.request empty")
+	}
+	return nil
+}
+
+func (ctx *Context) GetRawData() ([]byte, error) {
+	if ctx.request != nil {
+		body, err := ioutil.ReadAll(ctx.request.Body)
+		if err != nil {
+			return nil, err
+		}
+		ctx.request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		return body, nil
+	}
+	return nil, errors.New("ctx.request empty")
+}
+
+func (ctx *Context) Uri() string {
+	return ctx.request.RequestURI
+}
+
+func (ctx *Context) Method() string {
+	return ctx.request.Method
+}
+
+func (ctx *Context) Host() string {
+	return ctx.request.URL.Host
+}
+
+func (ctx *Context) ClientIp() string {
+	r := ctx.request
+	ipAddress := r.Header.Get("X-Real-Ip")
+	if ipAddress == "" {
+		ipAddress = r.Header.Get("X-Forwarded-For")
+	}
+	if ipAddress == "" {
+		ipAddress = r.RemoteAddr
+	}
+	return ipAddress
+}
+
+func (ctx *Context) Headers() map[string][]string {
+	return ctx.request.Header
+}
+
+func (ctx *Context) Header(key string) (string, bool) {
+	vals := ctx.request.Header.Values(key)
+	if vals == nil || len(vals) <= 0 {
+		return "", false
+	}
+	return vals[0], true
+}
+
+func (ctx *Context) Cookies() map[string]string {
+	cookies := ctx.request.Cookies()
+	ret := map[string]string{}
+	for _, cookie := range cookies {
+		ret[cookie.Name] = cookie.Value
+	}
+	return ret
+}
+
+func (ctx *Context) Cookie(key string) (string, bool) {
+	cookies := ctx.Cookies()
+	if val, ok := cookies[key]; ok {
+		return val, true
+	}
+	return "", false
 }
