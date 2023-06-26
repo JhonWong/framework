@@ -13,8 +13,8 @@ import (
 
 func main() {
 	core := framework.NewCore()
-	core.Use(
-		middleware.Recovery())
+	core.Use(middleware.Recovery())
+	core.Use(middleware.Cost())
 
 	registerRoute(core)
 
