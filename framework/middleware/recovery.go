@@ -1,16 +1,14 @@
 package middleware
 
-import "jwwebframework/framework"
+import "github.com/jhonwong/framework/framework/gin"
 
-func Recovery() framework.ControllerHandler {
-	return func(c *framework.Context) error {
+func Recovery() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				c.SetStatus(500).Json(err)
+				c.ISetStatus(500).IJson(err)
 			}
 		}()
 		c.Next()
-
-		return nil
 	}
 }

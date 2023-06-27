@@ -2,30 +2,27 @@ package main
 
 import (
 	"time"
+
+	"github.com/jhonwong/framework/framework/gin"
 )
 
-func UserLoginControllerHandler(c *framework.Context) error {
+func UserLoginController(c *gin.Context) {
 	time.Sleep(10 * time.Second)
-	c.SetStatus(200).Json("ok, UserLoginControllerHandler")
-	return nil
+	c.ISetStatus(200).IJson("ok, UserLoginControllerHandler")
 }
 
-func SubjectDelControllerHandler(c *framework.Context) error {
-	c.SetStatus(200).Json("ok SubjectDelControllerHandler")
-	return nil
+func SubjectDelController(c *gin.Context) {
+	c.ISetStatus(200).IJson("ok SubjectDelControllerHandler")
 }
 
-func SubjectUpdateControllerHandler(c *framework.Context) error {
-	c.SetStatus(200).Json("ok SubjectUpdateControllerHandler")
-	return nil
+func SubjectUpdateController(c *gin.Context) {
+	c.ISetStatus(200).IJson("ok SubjectUpdateControllerHandler")
 }
 
-func SubjectGetControllerHandler(c *framework.Context) error {
-	c.SetStatus(200).Json("ok SubjectGetControllerHandler")
-	return nil
+func SubjectGetController(c *gin.Context) {
+	c.ISetStatus(200).IJson("ok SubjectGetControllerHandler")
 }
 
-func SubjectListControllerHandler(c *framework.Context) error {
-	c.SetStatus(200).Json("ok SubjectListControllerHandler")
-	return nil
+func SubjectListController(c *gin.Context) {
+	c.ISetStatus(200).IJson("ok SubjectListControllerHandler")
 }

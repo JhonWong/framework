@@ -3,17 +3,18 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"jwwebframework/framework"
 	"log"
 	"time"
+
+	"github.com/jhonwong/framework/framework/gin"
 )
 
-func Timeout() framework.ControllerHandler {
-	return func(c *framework.Context) error {
+func Timeout() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		finish := make(chan struct{}, 1)
 		panicChan := make(chan interface{}, 1)
 
-		durationCtx, cancel := context.WithTimeout(c.BaseContext(), time.Duration(1*time.Second))
+		durationCtx, cancel := context.WithTimeout(c.Request.Context(), time.Duration(1*time.Second))
 		defer cancel()
 
 		go func() {
@@ -24,26 +25,18 @@ func Timeout() framework.ControllerHandler {
 			}()
 
 			time.Sleep(10 * time.Second)
-			c.SetOkStatus().Json("ok")
+			c.ISetOkStatus().IJson("ok")
 			finish <- struct{}{}
 		}()
 
 		select {
 		case p := <-panicChan:
-			c.WriteMux().Lock()
-			defer c.WriteMux().Unlock()
+			c.ISetStatus(500).IJson("panic")
 			log.Println(p)
-			c.SetStatus(500).Json("panic")
 		case <-finish:
 			fmt.Println("finish")
 		case <-durationCtx.Done():
-			c.WriteMux().Lock()
-			defer c.WriteMux().Unlock()
-			c.SetStatus(500).Json("time out")
-			c.SetTimeout()
+			c.ISetStatus(500).IJson("time out")
 		}
-
-		return nil
-
 	}
 }

@@ -1,17 +1,10 @@
 package gin
 
 import (
-	"bytes"
-	"encoding/json"
-	"encoding/xml"
-	"errors"
-	"io/ioutil"
 	"mime/multipart"
 
 	"github.com/spf13/cast"
 )
-
-const defaultMultipartMemory = 32 << 20 //32MB
 
 // 代表请求包含的方法
 type IRequest interface {
@@ -24,7 +17,6 @@ type IRequest interface {
 	DefaultQueryBool(key string, def bool) (bool, bool)
 	DefaultQueryString(key string, def string) (string, bool)
 	DefaultQueryStringSlice(key string, def []string) ([]string, bool)
-	DefaultQuery(key string) interface{}
 
 	// 路由匹配中带的参数
 	// 形如 /book/:id
@@ -144,62 +136,57 @@ func (ctx *Context) DefaultQueryStringSlice(key string, def []string) ([]string,
 	return def, false
 }
 
-func (ctx *Context) DefaultQuery(key string) interface{} {
-	params := ctx.Queryall()
-	if param, ok := params[key]; ok {
-		return param[0]
-	}
-	return nil
-}
-
-func (ctx *Context) DefaultParam(key string) interface{} {
-	if ctx.params != nil {
-		if val, ok := ctx.params[key]; ok {
-			return val
-		}
+func (ctx *Context) JwParam(key string) interface{} {
+	if val, ok := ctx.params.Get(key); ok {
+		return val
 	}
 	return nil
 }
 
 func (ctx *Context) DefaultParamInt(key string, def int) (int, bool) {
-	if val := ctx.Param(key); val != nil {
+	if val := ctx.JwParam(key); val != nil {
 		return cast.ToInt(val), true
 	}
 	return def, false
 }
 func (ctx *Context) DefaultParamInt64(key string, def int64) (int64, bool) {
-	if val := ctx.Param(key); val != nil {
+	if val := ctx.JwParam(key); val != nil {
 		return cast.ToInt64(val), true
 	}
 	return def, false
 }
 
 func (ctx *Context) DefaultParamFloat64(key string, def float64) (float64, bool) {
-	if val := ctx.Param(key); val != nil {
+	if val := ctx.JwParam(key); val != nil {
 		return cast.ToFloat64(val), true
 	}
 	return def, false
 }
 
 func (ctx *Context) DefaultParamFloat32(key string, def float32) (float32, bool) {
-	if val := ctx.Param(key); val != nil {
+	if val := ctx.JwParam(key); val != nil {
 		return cast.ToFloat32(val), true
 	}
 	return def, false
 }
 
 func (ctx *Context) DefaultParamBool(key string, def bool) (bool, bool) {
-	if val := ctx.Param(key); val != nil {
+	if val := ctx.JwParam(key); val != nil {
 		return cast.ToBool(val), true
 	}
 	return def, false
 }
 
 func (ctx *Context) DefaultParamString(key string, def string) (string, bool) {
-	if val := ctx.Param(key); val != nil {
+	if val := ctx.JwParam(key); val != nil {
 		return cast.ToString(val), true
 	}
 	return def, false
+}
+
+func (ctx *Context) FormAll() map[string][]string {
+	ctx.initFormCache()
+	return map[string][]string(ctx.formCache)
 }
 
 func (ctx *Context) DefaultFormInt(key string, def int) (int, bool) {
@@ -258,126 +245,10 @@ func (ctx *Context) DefaultFormStringSlice(key string, def []string) ([]string, 
 	return def, false
 }
 
-func (ctx *Context) DefaultFormFile(key string) (*multipart.FileHeader, error) {
-	if ctx.request.MultipartForm == nil {
-		if err := ctx.request.ParseMultipartForm(defaultMultipartMemory); err != nil {
-			return nil, err
-		}
-	}
-	f, fh, err := ctx.request.FormFile(key)
-	if err != nil {
-		return nil, err
-	}
-	f.Close()
-	return fh, err
-}
-
 func (ctx *Context) DefaultForm(key string) interface{} {
 	params := ctx.FormAll()
 	if vals, ok := params[key]; ok {
 		return vals[0]
 	}
 	return nil
-}
-
-// not_under
-func (ctx *Context) BindJson(obj interface{}) error {
-	if ctx.request != nil {
-		body, err := ioutil.ReadAll(ctx.request.Body)
-		if err != nil {
-			return err
-		}
-		ctx.request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
-		err = json.Unmarshal(body, obj)
-		if err != nil {
-			return err
-		}
-	} else {
-		return errors.New("ctx.request empty")
-	}
-	return nil
-}
-
-func (ctx *Context) BindXml(obj interface{}) error {
-	if ctx.request != nil {
-		body, err := ioutil.ReadAll(ctx.request.Body)
-		if err != nil {
-			return err
-		}
-		ctx.request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		err = xml.Unmarshal(body, obj)
-		if err != nil {
-			return err
-		}
-
-	} else {
-		return errors.New("ctx.request empty")
-	}
-	return nil
-}
-
-func (ctx *Context) GetRawData() ([]byte, error) {
-	if ctx.request != nil {
-		body, err := ioutil.ReadAll(ctx.request.Body)
-		if err != nil {
-			return nil, err
-		}
-		ctx.request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		return body, nil
-	}
-	return nil, errors.New("ctx.request empty")
-}
-
-func (ctx *Context) Uri() string {
-	return ctx.request.RequestURI
-}
-
-func (ctx *Context) Method() string {
-	return ctx.request.Method
-}
-
-func (ctx *Context) Host() string {
-	return ctx.request.URL.Host
-}
-
-func (ctx *Context) ClientIp() string {
-	r := ctx.request
-	ipAddress := r.Header.Get("X-Real-Ip")
-	if ipAddress == "" {
-		ipAddress = r.Header.Get("X-Forwarded-For")
-	}
-	if ipAddress == "" {
-		ipAddress = r.RemoteAddr
-	}
-	return ipAddress
-}
-
-func (ctx *Context) Headers() map[string][]string {
-	return ctx.request.Header
-}
-
-func (ctx *Context) Header(key string) (string, bool) {
-	vals := ctx.request.Header.Values(key)
-	if vals == nil || len(vals) <= 0 {
-		return "", false
-	}
-	return vals[0], true
-}
-
-func (ctx *Context) Cookies() map[string]string {
-	cookies := ctx.request.Cookies()
-	ret := map[string]string{}
-	for _, cookie := range cookies {
-		ret[cookie.Name] = cookie.Value
-	}
-	return ret
-}
-
-func (ctx *Context) Cookie(key string) (string, bool) {
-	cookies := ctx.Cookies()
-	if val, ok := cookies[key]; ok {
-		return val, true
-	}
-	return "", false
 }

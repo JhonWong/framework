@@ -1,21 +1,20 @@
 package middleware
 
 import (
-	"jwwebframework/framework"
 	"log"
 	"time"
+
+	"github.com/jhonwong/framework/framework/gin"
 )
 
-func Cost() framework.ControllerHandler {
-	return func(c *framework.Context) error {
+func Cost() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		start := time.Now()
 
 		c.Next()
 
 		end := time.Now()
 		cost := end.Sub(start)
-		log.Printf("api uri: %v, cost %v", c.Uri(), cost.Seconds())
-
-		return nil
+		log.Printf("api uri: %v, cost %v", c.Request.RequestURI, cost.Seconds())
 	}
 }

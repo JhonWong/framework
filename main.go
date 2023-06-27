@@ -2,17 +2,19 @@ package main
 
 import (
 	"context"
-	"jwwebframework/framework/middleware"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jhonwong/framework/framework/gin"
+	"github.com/jhonwong/framework/framework/middleware"
 )
 
 func main() {
-	core := framework.NewCore()
-	core.Use(middleware.Recovery())
+	core := gin.New()
+	core.Use(gin.Recovery())
 	core.Use(middleware.Cost())
 
 	registerRoute(core)

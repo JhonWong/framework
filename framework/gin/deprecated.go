@@ -7,7 +7,7 @@ package gin
 import (
 	"log"
 
-	"github.com/jhonwong/framework/gin/binding"
+	"github.com/jhonwong/framework/framework/gin/binding"
 )
 
 // BindWith binds the passed struct pointer using the specified binding engine.
